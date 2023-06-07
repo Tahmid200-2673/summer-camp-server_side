@@ -11,9 +11,9 @@ app.use(express.json());
 
 
 app.get('/', (req, res) => {
-    res.send('Sports is Running')
+    res.send('sports is running')
 })
 
 app.listen(port, () => {
-    console.log(`sports is Running on port ${port}`);
+    console.log(`sports is running on port ${port}`);
 })
