@@ -11,7 +11,7 @@ app.use(express.json());
 
 
 app.get('/', (req, res) => {
-    res.send('sports is running')
+    res.send('Sports is running')
 })
 
 app.listen(port, () => {
