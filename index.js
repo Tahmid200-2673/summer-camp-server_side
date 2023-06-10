@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -33,6 +34,8 @@ async function run() {
     
      const usersCollection = client.db("sports").collection("users");
      const classesCollection = client.db("sports").collection("classes");
+     const cartCollection = client.db("sports").collection("carts");
+     const paymentCollection = client.db("sports").collection("payments");
 
 
 
@@ -170,8 +173,79 @@ async function run() {
       res.status(500).send('Internal Server Error');
     }
   });
-  
 
+   // cart collection apis
+   app.get('/carts', async (req, res) => {
+    const email = req.query.email;
+
+    if (!email) {
+      res.send([]);
+    }
+    const query = { email: email };
+    const result = await cartCollection.find(query).toArray();
+    res.send(result);
+  });
+
+  app.post('/carts', async (req, res) => {
+    const item = req.body;
+    console.log(item);
+    const result = await cartCollection.insertOne(item);
+    res.send(result);
+  })
+
+  app.delete('/carts/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const result = await cartCollection.deleteOne(query);
+    res.send(result);
+  })
+
+     // create payment intent
+     app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
+    //payment
+
+    const ObjectId = require('mongodb').ObjectId;
+
+    app.post('/payments', async (req, res) => {
+      try {
+        const payment = req.body;
+    
+        // Save the payment information
+        const insertResult = await paymentCollection.insertOne(payment);
+    
+        if (payment.cartItemId) {
+          const cartItemId = new ObjectId(payment.cartItemId);
+          const query = { _id: cartItemId };
+    
+          const deleteResult = await cartCollection.deleteOne(query);
+    
+          if (deleteResult.deletedCount === 1) {
+            res.send({ deleteResult, insertResult });
+          } else {
+            res.status(404).json({ error: 'No matching cart item found.' });
+          }
+        } else {
+          res.status(400).json({ error: 'Invalid cartItemId data.' });
+        }
+      } catch (error) {
+        console.error('Error processing payment:', error);
+        res.status(500).json({ error: 'An error occurred while processing the payment.' });
+      }
+    });
+    
 
 
       
