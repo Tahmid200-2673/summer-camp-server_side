@@ -216,38 +216,42 @@ async function run() {
     })
 
     //payment
-
-    const ObjectId = require('mongodb').ObjectId;
+    app.get('/payments', async (req, res) => {
+      const email = req.query.email;
+  
+      if (!email) {
+        res.send([]);
+      }
+      const query = { email: email };
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    });
 
     app.post('/payments', async (req, res) => {
-      try {
-        const payment = req.body;
+      const payment = req.body;
+      // const classItemId = req.query.classItemId;
+      const { _id,classItemId, email } = payment;
+      // console.log(234,payment) 
+      const item = await cartCollection.findOne({ _id:  new ObjectId(classItemId) })  
+      console.log(item) 
+      const deleteResult = await cartCollection.deleteOne({ _id:  new ObjectId(classItemId) });
     
-        // Save the payment information
-        const insertResult = await paymentCollection.insertOne(payment);
-    
-        if (payment.cartItemId) {
-          const cartItemId = new ObjectId(payment.cartItemId);
-          const query = { _id: cartItemId };
-    
-          const deleteResult = await cartCollection.deleteOne(query);
-    
-          if (deleteResult.deletedCount === 1) {
-            res.send({ deleteResult, insertResult });
-          } else {
-            res.status(404).json({ error: 'No matching cart item found.' });
+      const updateResult = await classesCollection.updateOne(
+        { _id: new ObjectId(item.classItemId) },
+        {
+          $inc: {
+            availableSeats: -1,
+            enrolledStudents: 1
           }
-        } else {
-          res.status(400).json({ error: 'Invalid cartItemId data.' });
         }
-      } catch (error) {
-        console.error('Error processing payment:', error);
-        res.status(500).json({ error: 'An error occurred while processing the payment.' });
-      }
+      );
+    // console.log(updateResult)
+     
+      const insertResult = await paymentCollection.insertOne(payment);
+    
+      res.send({ deleteResult, updateResult, insertResult });
     });
     
-
-
       
   
 
