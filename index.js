@@ -165,7 +165,7 @@ async function run() {
 
   app.get('/classes/approved', async (req, res) => {
     try {
-      // Fetch the approved classes from the database
+      
       const approvedClasses = await classesCollection.find({ status: 'approved' }).toArray();
       res.send(approvedClasses);
     } catch (error) {
