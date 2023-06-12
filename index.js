@@ -216,7 +216,7 @@ async function run() {
       })
     })
 
-    //payment
+    //payment collection apis
     app.get('/payments', async (req, res) => {
       const email = req.query.email;
   
